@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SafeRoad | Road Hazard Reporter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    * {margin:0;padding:0;box-sizing:border-box;font-family:"Poppins",sans-serif;}
+    
+    body {
+      background:#121212;
+      color:#f5f5f5;
+    }
+
+    header {
+      background:#1c1c1c;
+      color:#fff;
+      padding:1rem 2rem;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      position:sticky;
+      top:0;
+      z-index:100;
+      box-shadow:0 2px 8px rgba(0,0,0,0.6);
+    }
+
+    header h1 {
+      color:#FFD60A;
+      font-size:1.5rem;
+    }
+
+    nav a {
+      color:#f5f5f5;
+      margin-left:1rem;
+      text-decoration:none;
+      font-weight:500;
+    }
+
+    nav a:hover {
+      color:#FFD60A;
+    }
+
+    .hero {
+      background:url('https://images.unsplash.com/photo-1533106418989-88406c7cc8e1?auto=format&fit=crop&w=1400&q=60') center/cover no-repeat;
+      height:60vh;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      text-align:center;
+      color:#fff;
+      padding:2rem;
+      position:relative;
+    }
+
+    .hero::before {
+      content:'';
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,0.6);
+    }
+
+    .hero h2, .hero p, .hero button {
+      position:relative;
+      z-index:1;
+    }
+
+    .hero h2 {
+      font-size:2.5rem;
+      margin-bottom:1rem;
+      text-shadow:1px 1px 3px #000;
+    }
+
+    .hero button {
+      background:#FFD60A;
+      border:none;
+      padding:0.8rem 1.5rem;
+      border-radius:25px;
+      font-weight:600;
+      cursor:pointer;
+      transition:0.3s;
+      color:#121212;
+    }
+
+    .hero button:hover {
+      background:#ffc300;
+    }
+
+    section {
+      padding:3rem 2rem;
+      max-width:1000px;
+      margin:auto;
+    }
+
+    h3 {
+      color:#FFD60A;
+      margin-bottom:1rem;
+      text-align:center;
+    }
+
+    form {
+      background:#1e1e1e;
+      padding:2rem;
+      border-radius:10px;
+      box-shadow:0 3px 8px rgba(0,0,0,0.4);
+    }
+
+    label {
+      display:block;
+      margin-bottom:0.5rem;
+      font-weight:600;
+    }
+
+    input, select, textarea {
+      width:100%;
+      padding:0.7rem;
+      margin-bottom:1rem;
+      border:1px solid #333;
+      border-radius:6px;
+      font-size:1rem;
+      background:#2a2a2a;
+      color:#f5f5f5;
+    }
+
+    input::placeholder, textarea::placeholder {
+      color:#aaa;
+    }
+
+    button.submit-btn {
+      background:#FFD60A;
+      border:none;
+      padding:0.8rem 1.5rem;
+      border-radius:25px;
+      font-weight:600;
+      cursor:pointer;
+      width:100%;
+      transition:0.3s;
+      color:#121212;
+    }
+
+    button.submit-btn:hover {
+      background:#ffc300;
+    }
+
+    #map {
+      height:450px;
+      width:100%;
+      border-radius:10px;
+      margin-top:1.5rem;
+      box-shadow:0 3px 8px rgba(0,0,0,0.6);
+    }
+
+    .filter {
+      text-align:center;
+      margin-bottom:1rem;
+    }
+
+    .filter select {
+      padding:0.5rem 1rem;
+      border-radius:8px;
+      border:1px solid #333;
+      background:#1e1e1e;
+      color:#f5f5f5;
+    }
+
+    footer {
+      background:#1c1c1c;
+      color:#bbb;
+      text-align:center;
+      padding:1rem;
+      margin-top:2rem;
+      border-top:1px solid #333;
+    }
+
+    .preview img {
+      max-width:100%;
+      border-radius:8px;
+      margin-bottom:10px;
+    }
+
+    .gallery-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+      gap:1.2rem;
+      margin-top:2rem;
+    }
+
+    .card {
+      background:#1e1e1e;
+      border-radius:10px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.5);
+      overflow:hidden;
+      transition:0.3s;
+    }
+
+    .card:hover {
+      transform:scale(1.02);
+    }
+
+    .card img {
+      width:100%;
+      height:160px;
+      object-fit:cover;
+    }
+
+    .card-info {
+      padding:0.8rem;
+      font-size:0.9rem;
+      color:#f5f5f5;
+    }
+
+    .card-info h4 {
+      margin-bottom:0.3rem;
+      color:#FFD60A;
+    }
+
+    .no-photos {
+      text-align:center;
+      margin-top:2rem;
+      font-weight:600;
+      color:#888;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1><i class="fa-solid fa-road"></i> SafeRoad</h1>
+    <nav>
+      <a href="#home">Home</a>
+      <a href="#report">Report</a>
+      <a href="#view">Map</a>
+      <a href="#gallery">Gallery</a>
+      <a href="#about">About</a>
+    </nav>
+  </header>
+
+  <section class="hero" id="home">
+    <h2>Spot It. Snap It. Report It.</h2>
+    <p>Help make roads safer by reporting hazards easily.</p>
+    <button onclick="document.querySelector('#report').scrollIntoView({behavior:'smooth'})">Report a Hazard</button>
+  </section>
+
+  <section id="report">
+    <h3>📝 Report a Road Hazard</h3>
+    <form id="hazardForm">
+      <label for="type">Type of Hazard</label>
+      <select id="type" required>
+        <option value="">Select type</option>
+        <option value="Pothole">Pothole</option>
+        <option value="Broken Signal">Broken Signal</option>
+        <option value="Obstruction">Obstruction</option>
+        <option value="Other">Other</option>
+      </select>
+
+      <label for="desc">Description</label>
+      <textarea id="desc" rows="3" placeholder="Describe the hazard..." required></textarea>
+
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;">
+          <label for="latitude">Latitude</label>
+          <input type="number" id="latitude" step="any" placeholder="Auto or manual" required>
+        </div>
+        <div style="flex:1;">
+          <label for="longitude">Longitude</label>
+          <input type="number" id="longitude" step="any" placeholder="Auto or manual" required>
+        </div>
+      </div>
+
+      <button type="button" class="submit-btn" id="detectLocation"><i class="fa-solid fa-location-crosshairs"></i> Use My Location</button>
+
+      <label for="photo">Upload Photo (optional)</label>
+      <input type="file" id="photo" accept="image/*">
+      <div class="preview" id="photoPreview"></div>
+
+      <button type="submit" class="submit-btn">Submit Report</button>
+    </form>
+    <p id="message" style="text-align:center;margin-top:1rem;font-weight:600;"></p>
+  </section>
+
+  <section id="view">
+    <h3>📍 Hazard Map</h3>
+    <div class="filter">
+      <label for="filterType">Filter by Type:</label>
+      <select id="filterType">
+        <option value="All">All</option>
+        <option value="Pothole">Pothole</option>
+        <option value="Broken Signal">Broken Signal</option>
+        <option value="Obstruction">Obstruction</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div id="map"></div>
+  </section>
+
+  <section id="gallery">
+    <h3>🖼️ Hazard Photo Gallery</h3>
+    <div class="filter">
+      <label for="galleryFilter">Filter by Type:</label>
+      <select id="galleryFilter">
+        <option value="All">All</option>
+        <option value="Pothole">Pothole</option>
+        <option value="Broken Signal">Broken Signal</option>
+        <option value="Obstruction">Obstruction</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div id="galleryGrid" class="gallery-grid"></div>
+    <p id="noPhotos" class="no-photos" style="display:none;">No photos available for this category.</p>
+  </section>
+
+  <section id="about">
+    <h3>About SafeRoad</h3>
+    <p style="text-align:center;max-width:700px;margin:auto;">
+      SafeRoad is a student-driven initiative promoting road safety through quick hazard reporting.
+      Users can submit potholes, broken signals, or other dangers with photos and GPS for real-time awareness.
+    </p>
+  </section>
+
+  <footer>
+    © 2025 SafeRoad
+  </footer>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const form = document.getElementById("hazardForm");
+    const message = document.getElementById("message");
+    const filterType = document.getElementById("filterType");
+    const galleryFilter = document.getElementById("galleryFilter");
+    const photoInput = document.getElementById("photo");
+    const photoPreview = document.getElementById("photoPreview");
+    const galleryGrid = document.getElementById("galleryGrid");
+    const noPhotos = document.getElementById("noPhotos");
+    let photoData = "";
+
+    // Preview uploaded photo
+    photoInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          photoData = evt.target.result;
+          photoPreview.innerHTML = `<img src="${photoData}" alt="Preview">`;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Initialize map
+    const map = L.map('map').setView([28.6139, 77.2090], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const markers = [];
+    let reports = JSON.parse(localStorage.getItem("reports") || "[]");
+
+    const icons = {
+      "Pothole": L.icon({ iconUrl: "https://cdn-icons-png.flaticon.com/512/3448/3448339.png", iconSize: [30, 30] }),
+      "Broken Signal": L.icon({ iconUrl: "https://cdn-icons-png.flaticon.com/512/483/483947.png", iconSize: [30, 30] }),
+      "Obstruction": L.icon({ iconUrl: "https://cdn-icons-png.flaticon.com/512/190/190406.png", iconSize: [30, 30] }),
+      "Other": L.icon({ iconUrl: "https://cdn-icons-png.flaticon.com/512/149/149071.png", iconSize: [30, 30] })
+    };
+
+    // Render map markers
+    function renderMarkers(filter = "All") {
+      markers.forEach(m => map.removeLayer(m));
+      markers.length = 0;
+      reports
+        .filter(r => filter === "All" || r.type === filter)
+        .forEach(r => {
+          let popupContent = `<b>${r.type}</b><br>${r.desc}<br>📍 (${r.lat.toFixed(4)}, ${r.lon.toFixed(4)})`;
+          if (r.photo) popupContent += `<br><img src="${r.photo}" width="150" style="margin-top:5px;border-radius:6px;">`;
+          const marker = L.marker([r.lat, r.lon], { icon: icons[r.type] || icons.Other })
+            .addTo(map)
+            .bindPopup(popupContent);
+          markers.push(marker);
+        });
+    }
+
+    // Render gallery
+    function renderGallery(filter = "All") {
+      galleryGrid.innerHTML = "";
+      const filtered = reports.filter(r => (filter === "All" || r.type === filter) && r.photo);
+      if (filtered.length === 0) {
+        noPhotos.style.display = "block";
+        return;
+      }
+      noPhotos.style.display = "none";
+      filtered.forEach(r => {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.innerHTML = `
+          <img src="${r.photo}" alt="${r.type}">
+          <div class="card-info">
+            <h4>${r.type}</h4>
+            <p>${r.desc}</p>
+            <small>📍 ${r.lat.toFixed(3)}, ${r.lon.toFixed(3)}</small>
+          </div>`;
+        galleryGrid.appendChild(card);
+      });
+    }
+
+    // Initial renders
+    renderMarkers();
+    renderGallery();
+
+    // Submit report
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const type = document.getElementById("type").value;
+      const desc = document.getElementById("desc").value;
+      const lat = parseFloat(document.getElementById("latitude").value);
+      const lon = parseFloat(document.getElementById("longitude").value);
+      if (isNaN(lat) || isNaN(lon)) {
+        message.textContent = "⚠️ Please enter valid coordinates.";
+        return;
+      }
+
+      const newReport = { type, desc, lat, lon, photo: photoData };
+      reports.push(newReport);
+      localStorage.setItem("reports", JSON.stringify(reports));
+      renderMarkers(filterType.value);
+      renderGallery(galleryFilter.value);
+      form.reset();
+      photoPreview.innerHTML = "";
+      photoData = "";
+      message.textContent = "✅ Report submitted successfully!";
+      setTimeout(() => message.textContent = "", 3000);
+    });
+
+    // Filter updates
+    filterType.addEventListener("change", e => renderMarkers(e.target.value));
+    galleryFilter.addEventListener("change", e => renderGallery(e.target.value));
+
+    // Geolocation
+    document.getElementById("detectLocation").addEventListener("click", () => {
+      if (navigator.geolocation) {
+        message.textContent = "📡 Detecting your location...";
+        navigator.geolocation.getCurrentPosition(pos => {
+          const { latitude, longitude } = pos.coords;
+          document.getElementById("latitude").value = latitude.toFixed(6);
+          document.getElementById("longitude").value = longitude.toFixed(6);
+          map.setView([latitude, longitude], 14);
+          message.textContent = "✅ Location detected!";
+          setTimeout(() => message.textContent = "", 3000);
+        }, () => {
+          message.textContent = "❌ Location access denied.";
+        });
+      } else {
+        message.textContent = "⚠️ Geolocation not supported.";
+      }
+    });
+  </script>
+</body>
+</html>
